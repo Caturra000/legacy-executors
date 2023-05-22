@@ -22,7 +22,7 @@ struct Query_only_property: Tag {
     // result in an identity transformation. 
 
     template <typename Executor,
-        typename = decltype(Executor::query(Derived()))>
+        typename = decltype(Executor::query(*static_cast<Derived*>(nullptr)))>
     static constexpr decltype(auto)
         static_query_v = Executor::query(Derived());
 

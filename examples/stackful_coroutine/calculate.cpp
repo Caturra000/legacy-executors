@@ -1,4 +1,4 @@
-#if defined(__linux__) && defined(__GNUC__)
+#if defined(__linux__) && defined(__GNUC__) && defined(__x86_64__)
 
 #include <ranges>
 #include <iostream>
@@ -35,7 +35,7 @@ int main() {
     return 0;
 }
 
-#else // defined(__linux__) && defined(__GNUC__)
+#else // defined(__linux__) && defined(__GNUC__) && defined(__x86_64__)
 
 int main() {
     static_assert(false, "The platform is not supported");

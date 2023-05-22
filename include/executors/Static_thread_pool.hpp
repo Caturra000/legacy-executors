@@ -25,8 +25,8 @@ public:
 
     Static_thread_pool(const Static_thread_pool &) = delete;
     Static_thread_pool& operator=(const Static_thread_pool &) = delete;
-    Static_thread_pool(Static_thread_pool &&) = default;
-    Static_thread_pool& operator=(Static_thread_pool &&) = default;
+    Static_thread_pool(Static_thread_pool &&) = delete;
+    Static_thread_pool& operator=(Static_thread_pool &&) = delete;
 
 
 // Executors
