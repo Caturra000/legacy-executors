@@ -90,7 +90,7 @@ private:
 
 template <typename T>
 inline Future<T>::Future(Then_execution_context *context, SharedPtr<ControlBlock<T>> shared)
-    : _executor(context),
+    : _executor(context, {}),
       _shared(std::move(shared)) {}
 
 template <typename T>
