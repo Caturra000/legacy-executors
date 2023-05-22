@@ -4,12 +4,19 @@ namespace bsio {
 namespace execution {
 
 struct Blocking: impl::blocking_impl::Top_class_property<Blocking> {
+    // Invocation of an executor’s execution function may block
+    // pending completion of one or more invocations of the
+    // submitted function object.
     struct Possibly
         : impl::blocking_impl::Property<Possibly> {};
 
+    // Invocation of an executor’s execution function shall block
+    // until completion of all invocations of submitted function object.
     struct Always
         : impl::blocking_impl::Property<Always> {};
 
+    // Invocation of an executor’s execution function shall not block
+    // pending completion of the invocations of the submitted function object.
     struct Never
         : impl::blocking_impl::Property<Never> {};
 

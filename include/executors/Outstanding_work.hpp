@@ -4,8 +4,15 @@ namespace bsio {
 namespace execution {
 
 struct Outstanding_work: impl::outstanding_work_impl::Top_class_property<Outstanding_work> {
+    // The existence of the executor object represents an indication
+    // of likely future submission of a function object. The executor
+    // or its associated execution context may choose to maintain
+    // execution resources in anticipation of this submission.
     struct Tracked
         : impl::outstanding_work_impl::Property<Tracked> {};
+
+    // The existence of the executor object does not indicate
+    // any likely future submission of a function object.
     struct Untracked
         : impl::outstanding_work_impl::Property<Untracked> {};
 

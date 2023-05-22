@@ -17,7 +17,7 @@ struct Directionality: impl::directionality_impl::Top_class_property<Directional
     struct Twoway
         : impl::directionality_impl::Property<Twoway> {};
     
-    // TODO
+    // See examples: future_then
     struct Then
         : impl::directionality_impl::Property<Then> {};
     

@@ -17,7 +17,9 @@ using Top_class_property = Query_only_property<Top_class_tag, Derived>;
 struct Tag: Top_class_tag {};
 
 template <typename Derived>
-using Property = Generic_property<Tag, Derived>;
+struct Property: Generic_property<Tag, Derived> {
+    static constexpr bool is_preferable = false;
+};
 
 // Top class is not included
 template <typename Property>

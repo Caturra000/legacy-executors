@@ -4,9 +4,14 @@ namespace bsio {
 namespace execution {
 
 struct Relationship: impl::relationship_impl::Top_class_property<Relationship> {
+	// Function objects submitted through the executor 
+    // do not represent continuations of the caller.
     struct Fork
         : impl::relationship_impl::Property<Fork> {};
 
+	// Function objects submitted through the executor represent
+    // continuations of the caller. Invocation of the submitted
+    // function object may be deferred until the caller completes.
     struct Continuation
         : impl::relationship_impl::Property<Continuation> {};
 

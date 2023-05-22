@@ -4,10 +4,15 @@ namespace bsio {
 namespace execution {
 
 struct Mapping: impl::mapping_impl::Top_class_property<Mapping> {
+    // Execution agents are mapped onto threads of execution.
     struct Thread
         : impl::mapping_impl::Property<Thread> {};
+
+    // Each execution agent is mapped onto a new thread of execution.
     struct New_thread
         : impl::mapping_impl::Property<New_thread> {};
+
+    // Mapping of each execution agent is implementation-defined.
     struct Other
         : impl::mapping_impl::Property<Other> {};
 

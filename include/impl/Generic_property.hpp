@@ -12,7 +12,6 @@ struct Generic_property: Tag {
     // can be used with the require and prefer customization points,
     // respectively.
 
-    static constexpr bool is_requirable_concept = false;
     static constexpr bool is_requirable = true;
     static constexpr bool is_preferable = true; 
 
