@@ -4,7 +4,7 @@
 #include <vector>
 #include <optional>
 #include <map>
-#include <sstream>
+#include <syncstream>
 #include <chrono>
 #include "execution.hpp"
 #include "Future/Future.hpp"
@@ -13,9 +13,8 @@ using Pid = size_t;
 
 // Avoid out-of-order output in concurrent situations
 void println(auto &&...args) {
-    std::stringstream ss;
-    (ss << ... << args) << std::endl;
-    std::cout << ss.str();
+    std::osyncstream cout(std::cout);
+    (cout << ... << args) << std::endl;
 }
 
 struct Webpage {
@@ -107,13 +106,12 @@ int main() {
             return tag_page->search_by_tag(user_info.tag);
         })
         .then([user_info](std::vector<Pid> &&picture_pids) {
-            std::stringstream ss;
-            ss << '[' << user_info.username << "] gets pictures: [";
+            std::osyncstream cout(std::cout);
+            cout << '[' << user_info.username << "] gets pictures: [";
             for(auto &&pid : picture_pids) {
-                ss << pid << ", ";
+                cout << pid << ", ";
             }
-            ss << "...]" << std::endl;
-            std::cout << ss.str();
+            cout << "...]" << std::endl;
             return nullptr;
         });
     }

@@ -2,7 +2,7 @@
 #include <memory>
 #include <cassert>
 #include <iostream>
-#include <sstream>
+#include <syncstream>
 #include <string>
 #include <chrono>
 #include "execution.hpp"
@@ -28,9 +28,8 @@ private:
         _next = next;
 
         if constexpr (verbose) {
-            std::stringstream ss;
-            ss << this << " init: [" << next << ", " << from << "]" << std::endl;
-            std::cout << ss.str();
+            std::osyncstream cout(std::cout);
+            cout << this << " init: [" << next << ", " << from << "]" << std::endl;
         }
 
         // notify to receiver
@@ -44,19 +43,20 @@ private:
         std::ignore = ignored;
         // For verbose
         // Avoid concurrent and reordered output
-        std::unique_ptr<std::stringstream> pss;
+        alignas(std::osyncstream) std::byte raw_out[sizeof(std::osyncstream)];
+        std::osyncstream *pcout;
 
         if constexpr (verbose) {
-            pss = std::make_unique<std::stringstream>();
-            *pss << this << " receives token: " << token;
+            pcout = new (&raw_out) std::osyncstream(std::cout);
+            *pcout << this << " receives token: " << token;
         }
 
         if(token > 0) [[likely]] token--;
         Actor_address to = token ? _next : _final;
 
         if constexpr (verbose) {
-            *pss << ", to: " << to << std::endl;
-            std::cout << pss->str(); 
+            *pcout << ", to: " << to << std::endl;
+            pcout->~basic_osyncstream();
         }
 
         defer_send(token, to);
