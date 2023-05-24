@@ -31,7 +31,7 @@ public:
 
 // Executors
 public:
-    template <typename Directionality,
+    template <execution::Directionality_property Directionality,
               execution::Blocking_property Blocking,
               execution::Relationship_property Relationship,
               typename Allocator>
@@ -107,7 +107,7 @@ private:
 
 
 
-template <typename Directionality,
+template <execution::Directionality_property Directionality,
           execution::Blocking_property Blocking,
           execution::Relationship_property Relationship,
           typename Allocator>
@@ -203,7 +203,7 @@ struct Static_thread_pool::This_thread_private_data {
 
 
 
-template <typename Directionality,
+template <execution::Directionality_property Directionality,
           execution::Blocking_property Blocking,
           execution::Relationship_property Relationship,
           typename Allocator>
@@ -213,7 +213,7 @@ inline void Static_thread_pool::Executor_impl<Directionality, Blocking, Relation
     return _pool->execute(Blocking{}, Relationship{}, Allocator{}, std::forward<decltype(functor)>(functor));
 }
 
-template <typename Directionality,
+template <execution::Directionality_property Directionality,
           execution::Blocking_property Blocking,
           execution::Relationship_property Relationship,
           typename Allocator>
