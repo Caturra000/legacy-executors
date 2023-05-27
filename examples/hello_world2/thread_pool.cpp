@@ -28,8 +28,8 @@ int main() {
         ex3.execute([=] {cal(1);});
     }
 
-    std::function<void()> recursive = [&, ex = ex3, r = std::make_shared<std::atomic<int>>()]() mutable {
-        int v = r->fetch_add(1, std::memory_order_acq_rel);
+    std::function<void()> recursive = [&, ex = ex3, r = 0]() mutable {
+        int v = ++r;
         if(v < TEST_ROUND) {
             sum.fetch_add(1, std::memory_order_relaxed);
             ex.execute(std::ref(recursive));
