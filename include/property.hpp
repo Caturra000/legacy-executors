@@ -13,6 +13,9 @@ namespace bsio {
 // Executor customization points are functions which adapt an executor's properties.
 // Executor customization points enable uniform use of executors in generic contexts.
 
+// To see why bsio::require must be a function object:
+// https://wg21.link/N4381
+
 inline constexpr cpo_detail::Require_fn
     require {};
 
