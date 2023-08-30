@@ -21,38 +21,38 @@
 * 对所有相同`property`，将对应`executor`做类型抹除处理以支持多态的`polymorphic executor`
 * （其实还有一个赠品线程池，因为提案写了）
 
-对于`executor`的`property`，库内已集成：
-* `directionality`：表示`executor`是否有向，比如是不考虑返回的`oneway`，或者是需要返回的`twoway`，或者`continuation`风格的`then`
-* `blocking`：表示一个任务的执行是否会阻塞执行流，`never`会保证当前执行流不会阻塞，但有最高的线程（安全）开销，`always`相反，`possibly`折中
-* `mapping`：任务与`execution agent`的映射关系，比如是使用per-thread，还是复用thread，还是inline，还是coroutine
-* `outstanding_work`：维护当前的执行上下文（`execution context`），可用于阻止提前退出，避免退出再次提交任务后不必的恢复开销
-* `relationship`：如果明确一个任务的提交已经是在`execution context`内部再次提交，可以用`continuation`标记
+| property           | 描述                                                         |
+| ------------------ | ------------------------------------------------------------ |
+| `directionality`   | 表示`executor`是否有向，比如是不考虑返回的`oneway`，或者是需要返回的`twoway`，或者`continuation`风格的`then` |
+| `blocking`         | 表示一个任务的执行是否会阻塞执行流，`never`会保证当前执行流不会阻塞，但有最高的线程（安全）开销，`always`相反，`possibly`折中 |
+| `mapping`          | 任务与`execution agent`的映射关系，比如是使用per-thread，还是复用thread，还是inline，还是coroutine |
+| `outstanding_work` | 维护当前的执行上下文（`execution context`），可用于阻止提前退出，避免退出再次提交任务后不必的恢复开销 |
+| `relationship`     | 如果明确一个任务的提交已经是在`execution context`内部再次提交，可以用`continuation`标记 |
 
 相比提案，我砍掉了萃取的支持。因为到了`C++20`之后，有不少接口是可以直接用`requires-expression`来完成
 
 ## 快速上手
 
-可以看`examples`里的丰富示例，目前有：
-* `hello_world`：简单实现`inline executor`、使用内置线程池，以及类`asio`的任务提交方式
-* `custom_executor`: 使用自定义`property`定制一个具有任务优先级的并发线程池
+现在手上有10个左右的示例：
+* `hello_world(3)`：实现`inline executor`、使用内置线程池，以及类`asio`的任务提交方式
+* `custom_executor`: 使用自定义`property`定制一个具有任务优先级的线程池
 * `polymorphic`: 实现多态下的通用`executor`
-* `future`：使用`twoway_executor`实现`promise/future`异步模型
-* `future_then`: 使用`then_executor`实现`promise/future`且符合`then continuation`模式
-* `stackful_coroutine`:使用`co_executor`实现有栈协程
-* `actor`: 定制一个`actor`通信框架
-* `pipeline`: 定制一个`pipeline`模式
+* `leader_followers`：实现[`leader/followers pattern`](https://www.dre.vanderbilt.edu/~schmidt/PDF/lf.pdf)
+* `future`：使用`twoway_executor`实现[`promise/future`](https://en.cppreference.com/w/cpp/thread/future)异步模型
+* `future_then`: 使用`then_executor`实现`promise/future`且符合[`then continuation`](https://engineering.fb.com/2015/06/19/developer-tools/futures-for-c-11-at-facebook/#:~:text=Sequential%20composition)模式
+* `stackful_coroutine`:使用`co_executor`实现[有栈协程](/archives/implements-coroutine/)
+* `actor`: 定制一个[`actor`](https://en.wikipedia.org/wiki/Actor_model)通信框架
+* `pipeline(2)`: 定制一个[`pipeline`](https://en.wikipedia.org/wiki/Pipeline_(software))模式，并封装为`stream`风格
 
-你可以通过了解示例，来理解`executor`到底是什么
-
-> TL;DR 你也可以直接看提案，不长
+可以通过了解示例，来理解`executor`到底是什么，如何应用各种同步/异步编程模式
 
 也可以通过这些示例，尝试把unified executors适配到任意一个第三方项目
 
 ### 示例1：hello world!
 
-你可以简单的定制一个`inline executor`，表示立刻在当前执行
+你可以简单的定制一个`inline executor`，表示立刻在当前的上下文执行
 
-```C++
+```cpp
 #include <concepts>
 #include <iostream>
 #include <cassert>
@@ -111,7 +111,7 @@ int main() {
 
 一个`executor`是轻量级且类型安全的：
 * 轻量级意味着你可以随意使用值语义，既：copy是廉价的
-* 类型安全意味着`executor`本身可以是携带`template`信息。这意味着，当没有所需的`property`时，会在编译期立刻发现（阻止）；以及使得`execution context`并没有任何`template`，这在API的简化上有很大帮助
+* 类型安全意味着`executor`本身可以是携带`template`信息。这指的是，当没有所需的`property`时，会在编译期立刻发现（阻止）；以及使得`execution context`并没有任何`template`，这在API的简化上有很大帮助
 * 无论是lightweight copyable executor还是non-templated execution context，都是提案为了简化泛型编程而做出的设计
 
 `bsio::require`接受一个`executor`和另一个用户需要的`property`，返回一个有对应`property`的`executor`；在这里存在的细节是，`bsio::require`如果发现不存在这样的`executor`，那么会直接编译期阻止编译，而`bsio::prefer`则相对宽松，如果不存在，那么可以原样返回。
@@ -120,13 +120,15 @@ int main() {
 
 这三个最关键的接口都可以做到编译时完成，既`constexpr`，除非用户层定制的`executor`需要额外的运行时信息
 
-这里可以留意到细节，用户层也有同名的`prefer/require/query`。其实`bsio::`库是调用用户层定义的函数来完成的，提案给出的是一种非侵入式的特性，它可以是成员函数，也可以是自由函数，或者是其它namespace下的同名函数，包括库内部已经实现好的`bsio::require`
+这里可以留意到细节，用户层也有同名的`prefer/require/query`。其实`bsio::`库是调用*用户层定义*的函数来完成的：提案给出的是一种非侵入式的特性，它可以是成员函数，也可以是自由函数，或者是其它namespace下的同名函数，包括库内部已经实现好的`bsio::require`
+
+> 至于这个库为什么使用`bsio`这个命名空间嘛，别问为什么，问就是致敬
 
 ### 示例2：hello world!!
 
 前面的例子没怎么看出一个类型安全的`executor`是什么概念，那么在这个线程池使用示例的例子中进一步了解一下复杂的`executor`类型
 
-```C++
+```cpp
 #include "execution.hpp"
 #include "property.hpp"
 #include <iostream>
@@ -183,15 +185,18 @@ int main() {
 
 > 比如`ex3`可能是一个
 > ``` C++
-> bsio::Static_thread_pool::Executor_impl<bsio::execution::Directionality::Oneway, bsio::execution::Blocking::Never, bsio::execution::Relationship::Continuation, std::allocator<void>>
+> bsio::Static_thread_pool::Executor_impl<bsio::execution::Directionality::Oneway,
+>                                         bsio::execution::Blocking::Never,
+>                                         bsio::execution::Relationship::Continuation,
+>                                         std::allocator<void>>
 > ```
-> 类型，既把`property`都放到模板上，这样就可以完成`require`等接口的`constexpr`零开销实现（构造函数也需要`constexpr`）。当然用户层也可以自定义返回非模板示例
+> 类型，既把`property`都放到模板上，这样就可以完成`require`等接口的`constexpr`零开销实现（构造函数也需要`constexpr`）。当然用户层也可以自定义返回非模板实例，这取决于你的设计选型
 
 这个例子就简单展示一下线程池的创建、执行以及等待
 
 ### 示例3：Hello world!!!
 
-```C++
+```cpp
 #include <iostream>
 #include "bsio.hpp"
 
@@ -209,14 +214,14 @@ int main() {
 }
 ```
 
-这些接口其实是为了迎合`asio`风格额外添加的，适用于大部分场合，提前打包而不必每次都`require`不同的`property`
+这些接口（`dispatch / post / defer`）其实是为了迎合`asio`风格额外添加的，适用于大部分场合，提前打包而不必每次都`require`不同的`property`
 
 接口用途的区别可以看[这里](https://www.boost.org/doc/libs/1_82_0/doc/html/boost_asio/reference/Executor1.html)
 
 ### 示例4：custom executor
 
 
-```C++
+```cpp
 #include <iostream>
 #include <atomic>
 #include <vector>
@@ -296,11 +301,11 @@ int main() {
 }
 ```
 
-property是可以自定义的，这个例子通过定义一个优先级`priority`来实现具有任务优先级的线程池
+`property`是可以自定义的，这个例子通过定义一个优先级`priority`来实现具有任务优先级的线程池
 
 ### 示例5：polymorphic executor
 
-```C++
+```cpp
 #include <iostream>
 #include <chrono>
 #include "execution.hpp"
@@ -349,7 +354,7 @@ int main() {
 
 ### 示例6：leader-followers
 
-```C++
+```cpp
 #include <functional>
 #include <any>
 #include <mutex>
@@ -408,11 +413,11 @@ private:
 };
 ```
 
-这里展示一个最简单的leader-followers模式，这种模式适用于简单的per-thread的改进。既不需要queue做生产者消费者中介，也不会因为任务提交切换线程而带来更多开销
+这里展示一个最简单的[leader/followers](https://www.dre.vanderbilt.edu/~schmidt/PDF/lf.pdf)模式，这种模式适用于简单的per-thread的改进。既不需要queue做生产者消费者中介，也不会因为任务提交切换线程而带来更多开销
 
 ### 示例7：promise future
 
-```C++
+```cpp
 #include <iostream>
 #include <chrono>
 #include <cassert>
@@ -444,7 +449,7 @@ int main() {
 
 ### 示例8：promise future continuation
 
-```C++
+```cpp
 #include <iostream>
 #include <string>
 #include <functional>
@@ -568,7 +573,7 @@ int main() {
 }
 ```
 
-很显然，标准库的`std::future`是不支持continuation style的（连`then`异步都不支持，多少有点残疾）
+很显然，标准库的`std::future`是不支持[continuation style](https://engineering.fb.com/2015/06/19/developer-tools/futures-for-c-11-at-facebook/#:~:text=Sequential%20composition)的（连`then`异步都不支持，多少有点残疾）
 
 那么用`executors`库定义一下统一接口岂不是分分钟的事情
 
@@ -576,7 +581,7 @@ int main() {
 
 ### 示例9：stackful coroutine
 
-```C++
+```cpp
 #include <ranges>
 #include <iostream>
 #include <queue>
@@ -615,12 +620,12 @@ int main() {
 
 这个例子展示有栈协程在executors库下的适配，这里简单点就展示斐波那契和斯特林数在协程下的交替求值过程
 
-> 因为这个库里并不包含网络基础设施，我没法直接展示IO相关的操作，虽然协程本身是适配了网络IO。。。
+> 因为这个库里并不包含跨平台的网络基础设施，我没法直接展示IO相关的操作，虽然协程本身是适配了网络IO。。。
 
 
 ### 示例10：actor
 
-```C++
+```cpp
 #include <vector>
 #include <memory>
 #include <cassert>
@@ -727,11 +732,11 @@ int main() {
 }
 ```
 
-用`executors`也可以封装[`actor`](https://en.wikipedia.org/wiki/Actor_model)框架。这里展示一下任意actor数目的击鼓传花
+用`executors`也可以封装[actor](https://en.wikipedia.org/wiki/Actor_model)框架。这里展示一下任意actor数目的击鼓传花
 
 ### 示例11：pipeline
 
-```C++
+```cpp
 #include <iostream>
 #include <string>
 #include <cctype>
@@ -775,13 +780,11 @@ int main() {
     using namespace pipeline_stream;
 
     // Type anything from your keyboard...
-    auto future = make | reader | filter | upper | writer | done;
+    auto keyboard_process = make | reader | filter | upper | writer | done;
 
     // Press ^D
-    future.wait();
+    keyboard_process.wait();
 }
 ```
 
 如果并发任务间的输入输出互有依赖，可以使用[`pipeline`](https://en.wikipedia.org/wiki/Pipeline_(software))完成这个工作
-
-话说这都完全看不出executor的模样了
