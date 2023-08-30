@@ -21,6 +21,8 @@
 * 对所有相同`property`，将对应`executor`做类型抹除处理以支持多态的`polymorphic executor`
 * （其实还有一个赠品线程池，因为提案写了）
 
+对于任意`executor`可能用到的`property`，库内已集成：
+
 | property           | 描述                                                         |
 | ------------------ | ------------------------------------------------------------ |
 | `directionality`   | 表示`executor`是否有向，比如是不考虑返回的`oneway`，或者是需要返回的`twoway`，或者`continuation`风格的`then` |
