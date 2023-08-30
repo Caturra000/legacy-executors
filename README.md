@@ -40,7 +40,7 @@
 * `leader_followers`：实现[`leader/followers pattern`](https://www.dre.vanderbilt.edu/~schmidt/PDF/lf.pdf)
 * `future`：使用`twoway_executor`实现[`promise/future`](https://en.cppreference.com/w/cpp/thread/future)异步模型
 * `future_then`: 使用`then_executor`实现`promise/future`且符合[`then continuation`](https://engineering.fb.com/2015/06/19/developer-tools/futures-for-c-11-at-facebook/#:~:text=Sequential%20composition)模式
-* `stackful_coroutine`:使用`co_executor`实现[有栈协程](/archives/implements-coroutine/)
+* `stackful_coroutine`:使用`co_executor`实现[有栈协程](https://www.caturra.cc/archives/implements-coroutine/)
 * `actor`: 定制一个[`actor`](https://en.wikipedia.org/wiki/Actor_model)通信框架
 * `pipeline(2)`: 定制一个[`pipeline`](https://en.wikipedia.org/wiki/Pipeline_(software))模式，并封装为`stream`风格
 
